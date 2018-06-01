@@ -1,13 +1,16 @@
-
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -68,7 +71,7 @@ public class MessageVerifier {
             }
         }
         catch (IOException e) {
-            // Do Something
+            System.out.println("Unknown failure " + e.getMessage());
         }
     }
 
@@ -81,7 +84,7 @@ public class MessageVerifier {
             socketChannel.register(this.selector, SelectionKey.OP_READ);
         }
         catch (IOException e) {
-            // Do Something
+            System.out.println("Unable to register connection " + e.getMessage());
         }
     }
 
@@ -89,17 +92,28 @@ public class MessageVerifier {
         SocketChannel socketChannel;
         ArrayList<ByteBuffer> buffers;
         String data;
-        HashMap<String, String> responseData;
+        HashMap<String, String> requestData;
+        ByteBuffer responseBuffer;
 
         socketChannel = (SocketChannel) selectionKey.channel();
 
         try {
             buffers = this.readRequest(socketChannel);
             data = this.extractData(buffers);
-            responseData = new Gson().fromJson(data, HashMap.class);
+            requestData = new Gson().fromJson(data, HashMap.class);
+            responseBuffer = this.buildResponseBuffer(this.verifyMessage(requestData));
+            socketChannel.write(responseBuffer);
         }
         catch (IOException e) {
-            // Do Something
+            System.out.println("Unable to process response " + e.getMessage());
+        }
+        finally {
+            try {
+                socketChannel.close();
+            }
+            catch (IOException e) {
+                System.out.println("Unable to close connection " + e.getMessage());
+            }
         }
 
     }
@@ -138,7 +152,38 @@ public class MessageVerifier {
         return stringBuilder.toString();
     }
 
+    private boolean verifyMessage(HashMap<String, String> data) {
+        String checksum;
+        String message;
+        MessageDigest messageDigest;
 
+        checksum = data.get("checksum");
+        message = data.get("message");
 
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-512");
+            messageDigest.update(message.getBytes("utf8"));
+            return checksum.equals(String.format("%040x", new BigInteger(1, messageDigest.digest())));
+        }
+        catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            System.out.println("unable to verify message " + e.getLocalizedMessage());
+            return false;
+        }
+    }
 
+    private String buildResponse(boolean status) {
+        MessageVerifierResponse messageVerifierResponse;
+
+        messageVerifierResponse = new MessageVerifierResponse();
+        messageVerifierResponse.setStatus(status);
+        return new Gson().toJson(messageVerifierResponse);
+    }
+
+    private ByteBuffer buildResponseBuffer(boolean status) {
+        String responseString;
+
+        responseString = this.buildResponse(status);
+        return ByteBuffer.wrap(responseString.getBytes());
+
+    }
 }
