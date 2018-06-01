@@ -41,15 +41,23 @@ public class SingleRequestTest {
         return new Gson().toJson(message);
     }
 
-    private ByteBuffer getRandomMessageByteByffer() throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private ByteBuffer getRandomMessageByteBuffer() throws UnsupportedEncodingException, NoSuchAlgorithmException {
         return ByteBuffer.wrap(this.getRandomMessage().getBytes());
     }
 
     private void assertResponse(ByteBuffer byteBuffer) {
         String response;
         MessageVerifierResponse messageVerifierResponse;
+        byte validBytes[];
+        int i;
 
-        response = new String(byteBuffer.array()).trim();
+        validBytes = new byte[byteBuffer.position()];
+
+        for (i = 0; i< validBytes.length; i++) {
+            validBytes[i] = byteBuffer.get(i);
+        }
+
+        response = new String(validBytes).trim();
         messageVerifierResponse = new Gson().fromJson(response, MessageVerifierResponse.class);
 
         Assertions.assertTrue(messageVerifierResponse.getStatus());
@@ -68,9 +76,9 @@ public class SingleRequestTest {
 
             inetSocketAddress = new InetSocketAddress("localhost", TestPort);
             socketChannel = SocketChannel.open(inetSocketAddress);
-            byteBuffer = this.getRandomMessageByteByffer();
+            byteBuffer = this.getRandomMessageByteBuffer();
             socketChannel.write(byteBuffer);
-            byteBuffer.clear();
+            byteBuffer.flip();
             socketChannel.read(byteBuffer);
             this.assertResponse(byteBuffer);
         }
