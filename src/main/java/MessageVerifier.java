@@ -2,14 +2,12 @@ import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +15,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class MessageVerifier {
-    private static final int Port = 8000;
+    public static final int Port = 8000;
     private static final int MinBuffer = 64;
 
     public static void main(String args[]) {
@@ -30,12 +28,12 @@ public class MessageVerifier {
     private int port;
     private int minBuffer;
 
-    private MessageVerifier(int port, int minBuffer) {
+    public MessageVerifier(int port, int minBuffer) {
         this.port = port;
         this.minBuffer = minBuffer;
     }
 
-    private void startServer() {
+    public void startServer() {
         InetSocketAddress inetSocketAddress;
 
         try {
@@ -92,7 +90,7 @@ public class MessageVerifier {
         SocketChannel socketChannel;
         ArrayList<ByteBuffer> buffers;
         String data;
-        HashMap<String, String> requestData;
+        Message requestData;
         ByteBuffer responseBuffer;
 
         socketChannel = (SocketChannel) selectionKey.channel();
@@ -100,7 +98,7 @@ public class MessageVerifier {
         try {
             buffers = this.readRequest(socketChannel);
             data = this.extractData(buffers);
-            requestData = new Gson().fromJson(data, HashMap.class);
+            requestData = new Gson().fromJson(data, Message.class);
             responseBuffer = this.buildResponseBuffer(this.verifyMessage(requestData));
             socketChannel.write(responseBuffer);
         }
@@ -139,31 +137,20 @@ public class MessageVerifier {
         return buffers;
     }
 
-    private String extractData(ArrayList<ByteBuffer> buffers) {
+    private String extractData(ArrayList<ByteBuffer> buffers) throws UnsupportedEncodingException {
         StringBuilder stringBuilder;
 
         stringBuilder = new StringBuilder();
         for(ByteBuffer buffer : buffers) {
-            for(Byte bufferByte : buffer.array()) {
-                stringBuilder.append(bufferByte);
-            }
+            stringBuilder.append(new String(buffer.array(), "UTF-8"));
         }
 
-        return stringBuilder.toString();
+        return stringBuilder.toString().trim();
     }
 
-    private boolean verifyMessage(HashMap<String, String> data) {
-        String checksum;
-        String message;
-        MessageDigest messageDigest;
-
-        checksum = data.get("checksum");
-        message = data.get("message");
-
+    private boolean verifyMessage(Message message) {
         try {
-            messageDigest = MessageDigest.getInstance("SHA-512");
-            messageDigest.update(message.getBytes("utf8"));
-            return checksum.equals(String.format("%040x", new BigInteger(1, messageDigest.digest())));
+            return message.getCheckSum().equals(Utility.generatedSHA512(message.getMessage()));
         }
         catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             System.out.println("unable to verify message " + e.getLocalizedMessage());
