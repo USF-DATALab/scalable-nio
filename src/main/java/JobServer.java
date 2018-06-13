@@ -1,3 +1,5 @@
+import Response.Message;
+import Response.ResponseManager;
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -8,28 +10,21 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 
-public class MessageVerifier {
-    public static final int Port = 8000;
-    private static final int MinBuffer = 64;
-
-    public static void main(String args[]) {
-        MessageVerifier messageVerifier = new MessageVerifier(Port, MinBuffer);
-        messageVerifier.startServer();
-    }
-
+public class JobServer {
     private Selector selector;
     private ServerSocketChannel serverSocketChannel;
     private int port;
     private int minBuffer;
+    private ResponseManager responseManager;
 
-    public MessageVerifier(int port, int minBuffer) {
+    public JobServer(int port, int minBuffer, ResponseManager responseManager) {
         this.port = port;
         this.minBuffer = minBuffer;
+        this.responseManager = responseManager;
     }
 
     public void startServer() {
@@ -88,8 +83,7 @@ public class MessageVerifier {
     private void readAndRespond(SelectionKey selectionKey) {
         SocketChannel socketChannel;
         ArrayList<ByteBuffer> buffers;
-        String data;
-        Message requestData;
+        String data, reply;
         ByteBuffer responseBuffer;
 
         socketChannel = (SocketChannel) selectionKey.channel();
@@ -97,8 +91,8 @@ public class MessageVerifier {
         try {
             buffers = this.readRequest(socketChannel);
             data = this.extractData(buffers);
-            requestData = new Gson().fromJson(data, Message.class);
-            responseBuffer = this.buildResponseBuffer(this.verifyMessage(requestData));
+            reply = this.responseManager.reply(data);
+            responseBuffer = ByteBuffer.wrap(reply.getBytes());
             socketChannel.write(responseBuffer);
         }
         catch (IOException e) {
@@ -145,31 +139,5 @@ public class MessageVerifier {
         }
 
         return stringBuilder.toString().trim();
-    }
-
-    private boolean verifyMessage(Message message) {
-        try {
-            return message.getCheckSum().equals(Utility.generatedSHA512(message.getMessage()));
-        }
-        catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-            System.out.println("unable to verify message " + e.getLocalizedMessage());
-            return false;
-        }
-    }
-
-    private String buildResponse(boolean status) {
-        MessageVerifierResponse messageVerifierResponse;
-
-        messageVerifierResponse = new MessageVerifierResponse();
-        messageVerifierResponse.setStatus(status);
-        return new Gson().toJson(messageVerifierResponse);
-    }
-
-    private ByteBuffer buildResponseBuffer(boolean status) {
-        String responseString;
-
-        responseString = this.buildResponse(status);
-        return ByteBuffer.wrap(responseString.getBytes());
-
     }
 }

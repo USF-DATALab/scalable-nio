@@ -1,4 +1,6 @@
-public class MessageVerifierResponse {
+package MessageVerifierUtility;
+
+public class MVResponse {
     public boolean status;
 
     public boolean getStatus() {

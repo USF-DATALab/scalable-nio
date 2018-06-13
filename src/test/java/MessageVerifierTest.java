@@ -1,3 +1,4 @@
+import Response.ResponseManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
@@ -5,7 +6,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 
-public class SingleRequestTest {
+public class MessageVerifierTest {
     private static final int TestPort = 8080;
 
     @Test
@@ -15,7 +16,7 @@ public class SingleRequestTest {
         new Thread(new TestServer()).start();
 
         try {
-            Thread.sleep(100);
+            Thread.sleep(20);
 
             inetSocketAddress = new InetSocketAddress("localhost", TestPort);
             Assertions.assertTrue(TestUtility.simpleTest(inetSocketAddress));
@@ -31,10 +32,16 @@ public class SingleRequestTest {
 
         @Override
         public void run() {
+            JobServer jobServer;
+            ResponseManager responseManager;
             MessageVerifier messageVerifier;
 
-            messageVerifier = new MessageVerifier(TestPort, 128);
-            messageVerifier.startServer();
+            responseManager = new ResponseManager();
+            messageVerifier = new MessageVerifier();
+            responseManager.register(messageVerifier.getClass().getName(), messageVerifier);
+
+            jobServer = new JobServer(TestPort, 128, responseManager);
+            jobServer.startServer();
         }
     }
 
