@@ -1,10 +1,10 @@
 package Response;
 
-public class Message {
+public class RequestMessage {
     public String message;
     public String responderName;
 
-    public Message(String message, String responderName) {
+    public RequestMessage(String message, String responderName) {
         this.message = message;
         this.responderName = responderName;
     }

@@ -1,6 +1,6 @@
 import MessageVerifierUtility.MVRequest;
 import MessageVerifierUtility.MVResponse;
-import Response.Message;
+import Response.RequestMessage;
 
 import com.google.gson.Gson;
 
@@ -56,12 +56,12 @@ public class TestUtility {
 
     private static String getRandomMessageAsJSON() throws UnsupportedEncodingException, NoSuchAlgorithmException {
         String body;
-        Message message;
+        RequestMessage requestMessage;
 
         body = getRandomMessageDataAsJSON();
 
-        message = new Message(body, MessageVerifier.class.getName());
-        return new Gson().toJson(message);
+        requestMessage = new RequestMessage(body, MessageVerifier.class.getName());
+        return new Gson().toJson(requestMessage);
     }
 
     private static ByteBuffer getRandomMessageByteBuffer()

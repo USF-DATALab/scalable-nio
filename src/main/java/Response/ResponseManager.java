@@ -16,21 +16,21 @@ public class ResponseManager {
     }
 
     public String reply(String data) {
-        Message message;
+        RequestMessage requestMessage;
 
-        message = new Gson().fromJson(data, Message.class);
+        requestMessage = new Gson().fromJson(data, RequestMessage.class);
 
         String responderName;
         String responderReply;
 
-        responderName = message.getResponderName();
+        responderName = requestMessage.getResponderName();
         responderReply = null;
 
         if (this.responderHashMap.containsKey(responderName)) {
             Responder responder;
 
             responder = this.responderHashMap.get(responderName);
-            responderReply = responder.readAndRespond(message.getMessage());
+            responderReply = responder.readAndRespond(requestMessage.getMessage());
         }
 
         return responderReply;
