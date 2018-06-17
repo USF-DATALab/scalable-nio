@@ -41,7 +41,7 @@ public class MessageVerifierTest {
             messageVerifier = new MessageVerifier();
             responseManager.register(messageVerifier.getClass().getName(), messageVerifier);
 
-            jobServer = new JobServer(TestPort, 128, responseManager);
+            jobServer = new JobServer(TestPort, 128, 10, responseManager);
             jobServer.startServer();
         }
     }

@@ -93,7 +93,9 @@ public class TestUtility {
 
         try(SocketChannel socketChannel = SocketChannel.open(inetSocketAddress)) {
             byteBuffer = TestUtility.getRandomMessageByteBuffer();
-            socketChannel.write(byteBuffer);
+            while (byteBuffer.hasRemaining()) {
+                socketChannel.write(byteBuffer);
+            }
             byteBuffer.flip();
             socketChannel.read(byteBuffer);
 
