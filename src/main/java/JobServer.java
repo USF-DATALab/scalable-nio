@@ -77,7 +77,7 @@ public class JobServer {
         }
     }
 
-    private void stopServer() {
+    public void stopServer() {
         this.state = false;
 
         try {

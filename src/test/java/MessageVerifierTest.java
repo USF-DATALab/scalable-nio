@@ -10,11 +10,25 @@ import java.security.NoSuchAlgorithmException;
 public class MessageVerifierTest {
     private static final int TestPort = 8080;
 
+    private JobServer setupServer() {
+        ResponseManager responseManager;
+        MessageVerifier messageVerifier;
+
+        responseManager = new ResponseManager();
+        messageVerifier = new MessageVerifier();
+        responseManager.register(messageVerifier.getClass().getName(), messageVerifier);
+
+        return new JobServer(TestPort, 128, 10, responseManager);
+    }
+
     @Test
     public void singleRequestTest() {
         InetSocketAddress inetSocketAddress;
+        JobServer jobServer;
 
-        new Thread(new TestServer()).start();
+        jobServer = this.setupServer();
+
+        new Thread(new TestServer(jobServer)).start();
 
         try {
             Thread.sleep(20);
@@ -27,21 +41,19 @@ public class MessageVerifierTest {
             Assertions.fail(e.getMessage());
         }
 
+        jobServer.stopServer();
+
     }
 
     private class TestServer implements Runnable {
+        private JobServer jobServer;
+
+        private TestServer(JobServer jobServer) {
+            this.jobServer = jobServer;
+        }
 
         @Override
         public void run() {
-            JobServer jobServer;
-            ResponseManager responseManager;
-            MessageVerifier messageVerifier;
-
-            responseManager = new ResponseManager();
-            messageVerifier = new MessageVerifier();
-            responseManager.register(messageVerifier.getClass().getName(), messageVerifier);
-
-            jobServer = new JobServer(TestPort, 128, 10, responseManager);
             jobServer.startServer();
         }
     }

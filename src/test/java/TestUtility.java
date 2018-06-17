@@ -90,6 +90,7 @@ public class TestUtility {
     public static boolean simpleTest(InetSocketAddress inetSocketAddress)
             throws IOException, NoSuchAlgorithmException {
         ByteBuffer byteBuffer;
+        boolean status;
 
         try(SocketChannel socketChannel = SocketChannel.open(inetSocketAddress)) {
             byteBuffer = TestUtility.getRandomMessageByteBuffer();
@@ -99,8 +100,10 @@ public class TestUtility {
             byteBuffer.flip();
             socketChannel.read(byteBuffer);
 
-            return messageSuccess(byteBuffer);
+            status = messageSuccess(byteBuffer);
         }
+
+        return status;
     }
 
 }
