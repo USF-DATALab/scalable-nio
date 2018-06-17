@@ -82,6 +82,7 @@ public class TestUtility {
         }
 
         response = new String(validBytes).trim();
+        System.out.println(response);
         messageMVResponse = new Gson().fromJson(response, MVResponse.class);
 
         return messageMVResponse.getStatus();
@@ -104,6 +105,38 @@ public class TestUtility {
         }
 
         return status;
+    }
+
+    public static int nRequestTest(InetSocketAddress inetSocketAddress, int count)
+            throws IOException, NoSuchAlgorithmException {
+        ByteBuffer byteBuffer;
+        boolean status;
+        int successCount;
+
+        try(SocketChannel socketChannel = SocketChannel.open(inetSocketAddress)) {
+            int i;
+
+            successCount = 0;
+
+            for (i = 0; i < count; i++) {
+                byteBuffer = TestUtility.getRandomMessageByteBuffer();
+
+                while (byteBuffer.hasRemaining()) {
+                    socketChannel.write(byteBuffer);
+                }
+
+                byteBuffer.flip();
+                socketChannel.read(byteBuffer);
+
+                status = messageSuccess(byteBuffer);
+
+                if (status) {
+                    successCount++;
+                }
+            }
+        }
+
+        return successCount;
     }
 
 }

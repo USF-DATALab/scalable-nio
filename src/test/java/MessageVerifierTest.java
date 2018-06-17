@@ -42,7 +42,31 @@ public class MessageVerifierTest {
         }
 
         jobServer.stopServer();
+    }
 
+    @Test
+    public void multipleRequestTest() {
+        InetSocketAddress inetSocketAddress;
+        JobServer jobServer;
+        int requestCount;
+
+        jobServer = this.setupServer();
+        requestCount = 5;
+
+        new Thread(new TestServer(jobServer)).start();
+
+        try {
+            Thread.sleep(20);
+
+            inetSocketAddress = new InetSocketAddress("localhost", TestPort);
+            Assertions.assertEquals(requestCount, TestUtility.nRequestTest(inetSocketAddress, requestCount));
+        }
+        catch (IOException | NoSuchAlgorithmException | InterruptedException e) {
+            e.printStackTrace();
+            Assertions.fail(e.getMessage());
+        }
+
+        jobServer.stopServer();
     }
 
     private class TestServer implements Runnable {

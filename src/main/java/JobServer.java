@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
@@ -64,29 +61,24 @@ public class JobServer {
 
                     else if (selectionKey.isReadable()) {
                         // https://community.oracle.com/thread/1146606?start=15&tstart=0
-                        selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ );
+                        selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
                         this.readAndRespond(selectionKey);
                     }
 
                     iter.remove();
                 }
             }
+
+            this.serverSocketChannel.close();
         }
         catch (IOException e) {
             System.out.println("Unknown failure " + e.getMessage());
+            System.exit(0);
         }
     }
 
     public void stopServer() {
         this.state = false;
-
-        try {
-            this.serverSocketChannel.close();
-        }
-        catch (IOException e) {
-            System.out.println("Error while closing server " + e.getMessage());
-        }
-
         this.executorService.shutdownNow();
     }
 
@@ -133,9 +125,16 @@ public class JobServer {
                     socketChannel.write(responseBuffer);
                 }
             }
+            catch (ClosedByInterruptException e) {
+                System.out.println("Connection closed");
+            }
             catch (IOException e) {
+                e.printStackTrace();
                 System.out.println("Unable to process response " + e.getMessage());
             }
+
+            this.selectionKey.interestOps(this.selectionKey.interestOps() | SelectionKey.OP_READ);
+            this.selectionKey.selector().wakeup();
         }
 
         private ArrayList<ByteBuffer> readRequest(SocketChannel socketChannel) throws IOException {
