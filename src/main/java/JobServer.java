@@ -1,4 +1,6 @@
 import Response.ResponseManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -19,12 +21,14 @@ public class JobServer {
     private ResponseManager responseManager;
     private ExecutorService executorService;
     private boolean state;
+    private Logger logger;
 
     public JobServer(int port, int minBuffer, int numThreads, ResponseManager responseManager) {
         this.port = port;
         this.minBuffer = minBuffer;
         this.responseManager = responseManager;
         this.executorService = Executors.newFixedThreadPool(numThreads);
+        this.logger = LogManager.getLogger();
     }
 
     public void startServer() {
@@ -70,16 +74,16 @@ public class JobServer {
             }
 
             this.serverSocketChannel.close();
+            this.executorService.shutdownNow();
         }
         catch (IOException e) {
-            System.out.println("Unknown failure " + e.getMessage());
+            this.logger.warn(String.format("Unknown failure %s", e.getMessage()));
             System.exit(0);
         }
     }
 
     public void stopServer() {
         this.state = false;
-        this.executorService.shutdownNow();
     }
 
     private void registerClient(){
@@ -91,7 +95,7 @@ public class JobServer {
             socketChannel.register(this.selector, SelectionKey.OP_READ);
         }
         catch (IOException e) {
-            System.out.println("Unable to register connection " + e.getMessage());
+            this.logger.error(String.format("Unable to register connection", e.getMessage()));
         }
     }
 
@@ -113,11 +117,14 @@ public class JobServer {
             ByteBuffer responseBuffer;
             SocketChannel socketChannel;
 
-            socketChannel = (SocketChannel) selectionKey.channel();
+            socketChannel = (SocketChannel) this.selectionKey.channel();
 
             try {
                 buffers = this.readRequest(socketChannel);
                 data = this.extractData(buffers);
+
+                logger.info(String.format("Data received %s from %s", data,
+                        socketChannel.socket().getInetAddress().getHostAddress()));
 
                 if (!data.isEmpty()) {
                     reply = responseManager.reply(data);
@@ -126,11 +133,12 @@ public class JobServer {
                 }
             }
             catch (ClosedByInterruptException e) {
-                System.out.println("Connection closed");
+                logger.info(String.format("Connection closed %s",
+                        socketChannel.socket().getInetAddress().getHostAddress()));
             }
             catch (IOException e) {
                 e.printStackTrace();
-                System.out.println("Unable to process response " + e.getMessage());
+                logger.warn(String.format("Unable to process response %s", e.getMessage()));
             }
 
             this.selectionKey.interestOps(this.selectionKey.interestOps() | SelectionKey.OP_READ);

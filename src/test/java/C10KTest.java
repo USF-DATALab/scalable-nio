@@ -47,7 +47,7 @@ public class C10KTest {
         @Override
         public void run() {
             try {
-                if (TestUtility.simpleTest(InetSocketAddress)) {
+                if (TestUtility.singleRequestTest(InetSocketAddress)) {
                     this.successLatch.countDown();
                 }
             }

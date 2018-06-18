@@ -43,30 +43,31 @@ public class TestUtility {
         return builder.toString();
     }
 
-    private static String getRandomMessageDataAsJSON() throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private static String getRandomMessageDataAsJSON(boolean success) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         String randomString, checkSum;
         MVRequest MVRequest;
 
         randomString = getRandomString(ThreadLocalRandom.current().nextInt(100, MaxMessageLength));
-        checkSum = generatedSHA512(randomString);
+
+        checkSum = (success) ? generatedSHA512(randomString) : "12345";
         MVRequest = new MVRequest(randomString, checkSum);
 
         return new Gson().toJson(MVRequest);
     }
 
-    private static String getRandomMessageAsJSON() throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private static String getRandomMessageAsJSON(boolean success) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         String body;
         RequestMessage requestMessage;
 
-        body = getRandomMessageDataAsJSON();
+        body = getRandomMessageDataAsJSON(success);
 
         requestMessage = new RequestMessage(body, MessageVerifier.class.getName());
         return new Gson().toJson(requestMessage);
     }
 
-    private static ByteBuffer getRandomMessageByteBuffer()
+    private static ByteBuffer getRandomMessageByteBuffer(boolean success)
             throws UnsupportedEncodingException, NoSuchAlgorithmException {
-        return ByteBuffer.wrap(getRandomMessageAsJSON().getBytes());
+        return ByteBuffer.wrap(getRandomMessageAsJSON(success).getBytes());
     }
 
     private static boolean messageSuccess(ByteBuffer byteBuffer) {
@@ -88,13 +89,32 @@ public class TestUtility {
         return messageMVResponse.getStatus();
     }
 
-    public static boolean simpleTest(InetSocketAddress inetSocketAddress)
+    public static boolean singleRequestTest(InetSocketAddress inetSocketAddress)
             throws IOException, NoSuchAlgorithmException {
         ByteBuffer byteBuffer;
         boolean status;
 
         try(SocketChannel socketChannel = SocketChannel.open(inetSocketAddress)) {
-            byteBuffer = TestUtility.getRandomMessageByteBuffer();
+            byteBuffer = TestUtility.getRandomMessageByteBuffer(true);
+            while (byteBuffer.hasRemaining()) {
+                socketChannel.write(byteBuffer);
+            }
+            byteBuffer.flip();
+            socketChannel.read(byteBuffer);
+
+            status = messageSuccess(byteBuffer);
+        }
+
+        return status;
+    }
+
+    public static boolean singleRequestFailureTest(InetSocketAddress inetSocketAddress)
+            throws IOException, NoSuchAlgorithmException {
+        ByteBuffer byteBuffer;
+        boolean status;
+
+        try(SocketChannel socketChannel = SocketChannel.open(inetSocketAddress)) {
+            byteBuffer = TestUtility.getRandomMessageByteBuffer(false);
             while (byteBuffer.hasRemaining()) {
                 socketChannel.write(byteBuffer);
             }
@@ -119,7 +139,7 @@ public class TestUtility {
             successCount = 0;
 
             for (i = 0; i < count; i++) {
-                byteBuffer = TestUtility.getRandomMessageByteBuffer();
+                byteBuffer = TestUtility.getRandomMessageByteBuffer(true);
 
                 while (byteBuffer.hasRemaining()) {
                     socketChannel.write(byteBuffer);
