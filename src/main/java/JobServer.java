@@ -23,6 +23,12 @@ public class JobServer {
     private boolean state;
     private Logger logger;
 
+    /**
+     * @param port - Server port
+     * @param minBuffer - Minimum message size
+     * @param numThreads - No of threads for Worker
+     * @param responseManager - Response Manager
+     */
     public JobServer(int port, int minBuffer, int numThreads, ResponseManager responseManager) {
         this.port = port;
         this.minBuffer = minBuffer;
@@ -31,6 +37,9 @@ public class JobServer {
         this.logger = LogManager.getLogger();
     }
 
+    /**
+     * Starts the server
+     */
     public void startServer() {
         InetSocketAddress inetSocketAddress;
         this.state = true;
@@ -82,10 +91,16 @@ public class JobServer {
         }
     }
 
+    /**
+     * Trigger to stop the while loop
+     */
     public void stopServer() {
         this.state = false;
     }
 
+    /**
+     * Register incoming connection for read
+     */
     private void registerClient(){
         SocketChannel socketChannel;
 
@@ -99,10 +114,18 @@ public class JobServer {
         }
     }
 
+    /**
+     * Handles a incoming request
+     *
+     * @param selectionKey
+     */
     private void readAndRespond(SelectionKey selectionKey) {
         this.executorService.submit(new Worker(selectionKey));
     }
 
+    /**
+     * Worker thread to process incoming request
+     */
     private class Worker implements Runnable {
         private SelectionKey selectionKey;
 
@@ -145,6 +168,13 @@ public class JobServer {
             this.selectionKey.selector().wakeup();
         }
 
+        /**
+         * Reads data from socket channel
+         *
+         * @param socketChannel - Socket Channel
+         * @return ByteBuffer - Request data packed into arraylist of ByteBuffer
+         * @throws IOException - Error while reading
+         */
         private ArrayList<ByteBuffer> readRequest(SocketChannel socketChannel) throws IOException {
             int counter;
             ByteBuffer current;
@@ -166,6 +196,13 @@ public class JobServer {
             return buffers;
         }
 
+        /**
+         * Merge data from buffers to a Single String
+         *
+         * @param buffers - Byte Buffer Array
+         * @return String - Request Data
+         * @throws UnsupportedEncodingException
+         */
         private String extractData(ArrayList<ByteBuffer> buffers) throws UnsupportedEncodingException {
             StringBuilder stringBuilder;
 

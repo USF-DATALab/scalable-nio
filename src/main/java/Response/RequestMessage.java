@@ -1,5 +1,14 @@
 package Response;
 
+/**
+ * Represent request data
+ *
+ * {
+ *     message: "",
+ *     responderName: "",
+ * }
+ *
+ */
 public class RequestMessage {
     public String message;
     public String responderName;
@@ -9,9 +18,15 @@ public class RequestMessage {
         this.responderName = responderName;
     }
 
+    /**
+     * @return String - Message
+     */
     public String getMessage() {
         return this.message;
     }
 
+    /**
+     * @return String - Responder name
+     */
     public String getResponderName() { return this.responderName; }
 }
