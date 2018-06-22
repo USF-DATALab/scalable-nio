@@ -54,7 +54,7 @@ public class JobServer {
             this.serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
 
             while (this.state) {
-                this.selector.select();
+                this.selector.select(10);
                 Set<SelectionKey> selectedKeys;
                 Iterator<SelectionKey> iter;
 
