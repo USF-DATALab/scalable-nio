@@ -29,4 +29,15 @@ public class RequestMessage {
      * @return String - Responder name
      */
     public String getResponderName() { return this.responderName; }
+
+
+    /**
+     * Returns a brief description of this potion. Will change
+     *
+     * @return String
+     */
+    @Override
+    public String toString() {
+        return String.format("%s:%s", this.responderName, this.getMessage());
+    }
 }

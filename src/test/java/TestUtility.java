@@ -83,7 +83,6 @@ public class TestUtility {
         }
 
         response = new String(validBytes).trim();
-        System.out.println(response);
         messageMVResponse = new Gson().fromJson(response, MVResponse.class);
 
         return messageMVResponse.getStatus();
