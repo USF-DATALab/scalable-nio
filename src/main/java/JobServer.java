@@ -145,15 +145,30 @@ public class JobServer {
 
             try {
                 buffers = this.readRequest(socketChannel);
+
+                if (buffers == null) {
+                    return;
+                }
+
                 data = this.extractData(buffers);
 
-                logger.info(String.format("Data received %s from %s", data,
-                        socketChannel.socket().getInetAddress().getHostAddress()));
-
                 if (!data.isEmpty()) {
+                    logger.info(String.format("Data received %s from %s", data,
+                            socketChannel.socket().getInetAddress().getHostAddress()));
+
                     reply = responseManager.reply(data);
-                    responseBuffer = ByteBuffer.wrap(reply.getBytes());
-                    socketChannel.write(responseBuffer);
+
+                    if (reply != null) {
+                        responseBuffer = ByteBuffer.wrap(reply.getBytes());
+                        socketChannel.write(responseBuffer);
+                    }
+                    else {
+                        logger.info(String.format("Didn't get any reply for %s", data));
+                    }
+                }
+                else {
+                    logger.info(String.format("NO Data received from %s",
+                            socketChannel.socket().getInetAddress().getHostAddress()));
                 }
             }
             catch (ClosedByInterruptException e) {
@@ -177,21 +192,25 @@ public class JobServer {
          * @throws IOException - Error while reading
          */
         private ArrayList<ByteBuffer> readRequest(SocketChannel socketChannel) throws IOException {
-            int counter;
+            int counter, active;
             ByteBuffer current;
             ArrayList<ByteBuffer> buffers;
 
-            counter = 2;
+            counter = 1;
             buffers = new ArrayList<>();
             current = ByteBuffer.allocate(minBuffer);
             buffers.add(current);
 
-            while (socketChannel.read(current) > 0) {
+            while ((active = socketChannel.read(current)) > 0) {
                 if (!current.hasRemaining()) {
                     current = ByteBuffer.allocate(minBuffer * 2 * counter);
                     buffers.add(current);
                     counter++;
                 }
+            }
+
+            if (active == -1 && counter == 1) {
+                return null;
             }
 
             return buffers;

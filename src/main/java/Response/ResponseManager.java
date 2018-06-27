@@ -1,6 +1,7 @@
 package Response;
 
 import com.google.gson.Gson;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 
@@ -9,9 +10,14 @@ import java.util.HashMap;
  */
 public class ResponseManager {
     private HashMap<String, Responder> responderHashMap;
+    private Logger logger;
 
     public ResponseManager() {
         this.responderHashMap = new HashMap<>();
+    }
+
+    public void attachLogger(Logger logger) {
+        this.logger = logger;
     }
 
     /**
@@ -41,11 +47,14 @@ public class ResponseManager {
         responderName = requestMessage.getResponderName();
         responderReply = null;
 
-        if (this.responderHashMap.containsKey(responderName)) {
+        if (responderName != null && this.responderHashMap.containsKey(responderName)) {
             Responder responder;
 
             responder = this.responderHashMap.get(responderName);
             responderReply = responder.readAndRespond(requestMessage.getMessage());
+        }
+        else {
+            this.logger.info(String.format("Responder %s missing or not configured", responderName));
         }
 
         return responderReply;
