@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -45,7 +46,7 @@ public class JobServer {
         this.state = true;
 
         try {
-            inetSocketAddress = new InetSocketAddress("localhost", this.port);
+            inetSocketAddress = new InetSocketAddress("::", this.port);
 
             this.selector = Selector.open();
             this.serverSocketChannel = ServerSocketChannel.open();
