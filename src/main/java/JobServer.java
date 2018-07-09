@@ -137,38 +137,28 @@ public class JobServer {
         @Override
         public void run() {
             ArrayList<ByteBuffer> buffers;
-            String data, reply;
-            ByteBuffer responseBuffer;
             SocketChannel socketChannel;
+            boolean socketChannelState;
 
             socketChannel = (SocketChannel) this.selectionKey.channel();
+            socketChannelState = false;
 
             try {
                 buffers = this.readRequest(socketChannel);
 
-                if (buffers == null) {
-                    return;
-                }
+                if (buffers != null) {
+                    String data;
 
-                data = this.extractData(buffers);
+                    data = this.extractData(buffers);
 
-                if (!data.isEmpty()) {
-                    logger.info(String.format("Data received %s from %s", data,
-                            socketChannel.socket().getInetAddress().getHostAddress()));
-
-                    reply = responseManager.reply(data);
-
-                    if (reply != null) {
-                        responseBuffer = ByteBuffer.wrap(reply.getBytes());
-                        socketChannel.write(responseBuffer);
+                    if (!data.isEmpty()) {
+                        this.respond(data, socketChannel);
+                        socketChannelState = true;
                     }
                     else {
-                        logger.info(String.format("Didn't get any reply for %s", data));
+                        logger.info(String.format("NO Data received from %s",
+                                socketChannel.socket().getInetAddress().getHostAddress()));
                     }
-                }
-                else {
-                    logger.info(String.format("NO Data received from %s",
-                            socketChannel.socket().getInetAddress().getHostAddress()));
                 }
             }
             catch (ClosedByInterruptException e) {
@@ -179,9 +169,37 @@ public class JobServer {
                 e.printStackTrace();
                 logger.warn(String.format("Unable to process response %s", e.getMessage()));
             }
+            finally {
+                if (socketChannelState) {
+                    this.selectionKey.interestOps(this.selectionKey.interestOps() | SelectionKey.OP_READ);
+                    this.selectionKey.selector().wakeup();
+                }
+                else {
+                    try {
+                        socketChannel.close();
+                    }
+                    catch (IOException e) {
+                        logger.info(String.format("Error Closing Connection %s",
+                                socketChannel.socket().getInetAddress().getHostAddress()));
+                    }
+                }
+            }
+        }
 
-            this.selectionKey.interestOps(this.selectionKey.interestOps() | SelectionKey.OP_READ);
-            this.selectionKey.selector().wakeup();
+        private void respond(String data, SocketChannel socketChannel) throws IOException {
+            String reply;
+
+            logger.info(String.format("Data received %s from %s", data,
+                    socketChannel.socket().getInetAddress().getHostAddress()));
+
+            reply = responseManager.reply(data);
+
+            if (reply != null) {
+                ByteBuffer responseBuffer;
+
+                responseBuffer = ByteBuffer.wrap(reply.getBytes());
+                socketChannel.write(responseBuffer);
+            }
         }
 
         /**
@@ -209,8 +227,9 @@ public class JobServer {
                 }
             }
 
-            if (active == -1 && counter == 1) {
-                return null;
+            // Detected client closed connection
+            if (active == -1) {
+                buffers = null;
             }
 
             return buffers;
